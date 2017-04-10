@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Timers;
 
 namespace MobaServer
 {
@@ -11,7 +11,8 @@ namespace MobaServer
     {
         static void Main(string[] args)
         {
-            SocketHandler socket = new SocketHandler();
+            PacketParser parser = new PacketParser();
+            SocketHandler socket = new SocketHandler(parser);
 
             while (true)
             {

@@ -8,18 +8,20 @@ namespace MobaServer.Transport
 {
     public class SocketState
     {
-        public Socket clientSocket = null;
+        public Socket ClientSocket = null;
         public const int READ_BUFFER_SIZE = 1024;
-        public byte[] buffer = new byte[READ_BUFFER_SIZE];
+        public byte[] ReadBuffer = new byte[READ_BUFFER_SIZE];
     }
 
     class SocketHandler
     {
         private static ManualResetEvent operationComplete = new ManualResetEvent(false);
+        private PacketParser packetParser;
 
-
-        public SocketHandler()
+        public SocketHandler(PacketParser parser)
         {
+            this.packetParser = parser;
+
             BeginListening();
         }
 
@@ -44,30 +46,27 @@ namespace MobaServer.Transport
             }
         }
 
-        private static void OnRead(IAsyncResult result)
+        private void OnRead(IAsyncResult result)
         {
-            String content = String.Empty;
-
             // Retrieve the state object and the handler socket  
             // from the asynchronous state object.  
             SocketState state = (SocketState)result.AsyncState;
-            Socket handler = state.clientSocket;
+            Socket handler = state.ClientSocket;
 
             // Read data from the client socket.   
             int bytesRead = handler.EndReceive(result);
-            string sent = Encoding.ASCII.GetString(state.buffer, 0, bytesRead);
-            Console.WriteLine(sent);
-
-
             if (bytesRead > 0)
             {
                 //handle the stuff
+                packetParser.OnData(state.ReadBuffer);
+                Array.Clear(state.ReadBuffer, 0, state.ReadBuffer.Length);
             }
 
-            handler.BeginReceive(state.buffer, 0, SocketState.READ_BUFFER_SIZE, 0, new AsyncCallback(OnRead), state);
+            //start listening again.
+            handler.BeginReceive(state.ReadBuffer, 0, SocketState.READ_BUFFER_SIZE, 0, new AsyncCallback(OnRead), state);
         }
 
-        private static void OnAccept(IAsyncResult result)
+        private void OnAccept(IAsyncResult result)
         {
             // Signal the main thread to continue.  
             operationComplete.Set();
@@ -79,8 +78,8 @@ namespace MobaServer.Transport
             // Create the state object.  
             Console.WriteLine("Opened New Socket");
             SocketState state = new SocketState();
-            state.clientSocket = handler;
-            handler.BeginReceive(state.buffer, 0, SocketState.READ_BUFFER_SIZE, 0, new AsyncCallback(OnRead), state);
+            state.ClientSocket = handler;
+            handler.BeginReceive(state.ReadBuffer, 0, SocketState.READ_BUFFER_SIZE, 0, new AsyncCallback(OnRead), state);
         }
     }
 }
