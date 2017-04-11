@@ -11,6 +11,9 @@ namespace MobaServer.Transport.Tests
     [TestClass()]
     public class PacketParserTests
     {
+		  private PacketParser parser;
+		  private string testData;
+
         private byte[] GeneratePacket(string packetContents)
         {
             byte[] helloWorld = Encoding.ASCII.GetBytes(packetContents);
@@ -20,16 +23,28 @@ namespace MobaServer.Transport.Tests
             return packet;
         }
 
+		  List<Packet> packets;
+		  private void OnRead(List<Packet> packets)
+		  {
+				this.packets = packets;
+		  }
+
+
+		  [TestInitialize()]
+		  public void Init()
+		  {
+				parser = new PacketParser();
+				parser.OnReadData += OnRead;
+				testData = "testData";
+		  }
+
+
         [TestMethod()]
         public void OnDataCompletePacketTest()
-        {
-            //setup
-            PacketParser parser = new PacketParser();
-            string testData = "testData";
+        {            
             //exec
-            parser.OnData(GeneratePacket(testData));
+            parser.OnData(GeneratePacket(testData), 0);
             //verify
-            var packets = parser.ParsedPackets;
             Assert.AreEqual(packets.Count, 1);
             Assert.AreEqual(packets[0].data, testData);
         }
@@ -38,15 +53,12 @@ namespace MobaServer.Transport.Tests
         public void OnDataTwoPacketsTest()
         {
             //setup
-            PacketParser parser = new PacketParser();
-            string testData = "testData";
             var byteArray = GeneratePacket(testData);
             byteArray = byteArray.Concat(GeneratePacket(testData)).ToArray();
             //exec
-            parser.OnData(byteArray);
-            //verify
-            var packets = parser.ParsedPackets;
-            Assert.AreEqual(packets.Count, 2);
+            parser.OnData(byteArray, 0);
+				//verify
+				Assert.AreEqual(packets.Count, 2);
             Assert.AreEqual(packets[0].data, testData);
             Assert.AreEqual(packets[1].data, testData);
         }
@@ -55,17 +67,14 @@ namespace MobaServer.Transport.Tests
         public void OnDataTruncatedPacketTest()
         {
             //setup
-            PacketParser parser = new PacketParser();
-            string testData = "testData";
             var byteArray = GeneratePacket(testData);
             byte[] intBytes = BitConverter.GetBytes((ushort)testData.Length);
             Array.Reverse(intBytes);
             byteArray = byteArray.Concat(intBytes).ToArray();
             //exec
-            parser.OnData(byteArray);
-            //verify
-            var packets = parser.ParsedPackets;
-            Assert.AreEqual(packets.Count, 1);
+            parser.OnData(byteArray, 0);
+				//verify
+				Assert.AreEqual(packets.Count, 1);
             Assert.AreEqual(packets[0].data, testData);
         }
 
@@ -73,21 +82,21 @@ namespace MobaServer.Transport.Tests
         public void OnDataMultipleReadsPacketTest()
         {
             //setup
-            PacketParser parser = new PacketParser();
-            string testData = "testData";
             var byteArray = GeneratePacket(testData);
             byte[] intBytes = BitConverter.GetBytes((ushort)testData.Length);
             Array.Reverse(intBytes);
             byteArray = byteArray.Concat(intBytes).ToArray();
-            //exec
-            parser.OnData(byteArray);
-            byteArray = Encoding.ASCII.GetBytes(testData);
-            parser.OnData(byteArray);
-            //verify
-            var packets = parser.ParsedPackets;
-            Assert.AreEqual(packets.Count, 2);
+            //exec1 (add the first packet with some truncated data)
+            parser.OnData(byteArray, 0);
+				//verify1
+				Assert.AreEqual(packets.Count, 1);
+				Assert.AreEqual(packets[0].data, testData);
+				//exec2 (add another partial packet)
+				byteArray = Encoding.ASCII.GetBytes(testData);
+            parser.OnData(byteArray, 0);
+				//verify
+				Assert.AreEqual(packets.Count, 1);
             Assert.AreEqual(packets[0].data, testData);
-            Assert.AreEqual(packets[1].data, testData);
         }
     }
 }

@@ -16,19 +16,18 @@ namespace MobaServer.Transport
     {
         const int PACKET_SIZE = 2;
         private byte[] unprocessedDataBuffer;
-        private List<Packet> parsedPackets;
 
-        public List<Packet> ParsedPackets { get => parsedPackets; }
+		  public delegate void ReadDataEvent(List<Packet> packets);
+		  public event ReadDataEvent OnReadData;
+
 
         public PacketParser()
         {
             unprocessedDataBuffer = new byte[0];
-            parsedPackets = new List<Packet>();
         }
 
         public void OnData(byte[] dataBuffer, int id)
         {
-            Console.WriteLine(id.ToString());
             dataBuffer = MergeDataBuffers(dataBuffer);
 
             List<Packet> packets = new List<Packet>();
@@ -86,13 +85,8 @@ namespace MobaServer.Transport
 
         private void HandlePackets(List<Packet> packets)
         {
-            parsedPackets = parsedPackets.Concat(packets).ToList();
-
-            //print the recv'd packets
-            foreach (var p in packets)
-            {
-                Console.WriteLine("Parsed Packet: " + p.data);
-            }
+				if(OnReadData != null)
+					 OnReadData(packets);
         }
 
         private byte[] RemoveRangeFromBuffer(byte[] dataBuffer, int start, int end)

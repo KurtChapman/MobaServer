@@ -48,6 +48,7 @@
     <Compile Include="Transport\ClientSocket.cs" />
     <Compile Include="Transport\PacketParser.cs" />
     <Compile Include="Server.cs" />
+    <Compile Include="Transport\PacketQueue.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

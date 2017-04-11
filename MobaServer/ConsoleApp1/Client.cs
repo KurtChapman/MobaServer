@@ -11,12 +11,16 @@ namespace MobaServer
 	 class Client
 	 {
 		  private PacketParser packetParser;
+		  private PacketQueue packetQueue;
 		  private ClientSocket socket;
+		  private int id;
 
 		  public Client(Socket socket)
 		  {
 				this.packetParser = new PacketParser();
+				this.packetQueue = new PacketQueue(packetParser);
 				this.socket = new ClientSocket(socket, packetParser);
+				this.id = socket.GetHashCode();
 		  }
 	 }
 }
