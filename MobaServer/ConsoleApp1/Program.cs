@@ -11,8 +11,7 @@ namespace MobaServer
     {
         static void Main(string[] args)
         {
-            PacketParser parser = new PacketParser();
-            SocketHandler socket = new SocketHandler(parser);
+            Server server = new Server();
 
             while (true)
             {

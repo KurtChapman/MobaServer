@@ -12,18 +12,23 @@ namespace MobaServer.Transport
     }
 
 
-    class PacketParser
+    public class PacketParser
     {
         const int PACKET_SIZE = 2;
-        private byte[] buffer;
+        private byte[] unprocessedDataBuffer;
+        private List<Packet> parsedPackets;
+
+        public List<Packet> ParsedPackets { get => parsedPackets; }
 
         public PacketParser()
         {
-            buffer = new byte[0];
+            unprocessedDataBuffer = new byte[0];
+            parsedPackets = new List<Packet>();
         }
 
-        public void OnData(byte[] dataBuffer)
+        public void OnData(byte[] dataBuffer, int id)
         {
+            Console.WriteLine(id.ToString());
             dataBuffer = MergeDataBuffers(dataBuffer);
 
             List<Packet> packets = new List<Packet>();
@@ -33,15 +38,15 @@ namespace MobaServer.Transport
             {
                 if (dataSize > dataBuffer.Length)
                 {
-                    buffer = new byte[dataBuffer.Length];
-                    buffer = dataBuffer;
+                    unprocessedDataBuffer = new byte[dataBuffer.Length];
+                    unprocessedDataBuffer = dataBuffer;
                     break;
                 }
 
                 var packet = ReadBytesFromBuffer(dataSize, dataBuffer);
                 packets.Add(packet);
                 //move onto the next packet in the buffer
-                Array.Clear(dataBuffer, 0, PACKET_SIZE + dataSize);
+                dataBuffer = RemoveRangeFromBuffer(dataBuffer, 0, PACKET_SIZE + dataSize);
                 dataSize = GetSizeOfCurrentPacket(dataBuffer);
             }
             HandlePackets(packets);
@@ -49,17 +54,24 @@ namespace MobaServer.Transport
 
         private byte[] MergeDataBuffers(byte[] receivedBuffer)
         {
-            //add any left over buffer to the end of the array
-            receivedBuffer = buffer.Concat(receivedBuffer).ToArray();
+            //add any data wating to be processed to the end of the receieved buffer
+            receivedBuffer = unprocessedDataBuffer.Concat(receivedBuffer).ToArray();
             //clear the internal buffer
-            Array.Clear(buffer, 0, buffer.Length);
+            Array.Clear(unprocessedDataBuffer, 0, unprocessedDataBuffer.Length);
             return receivedBuffer;
         }
 
         private ushort GetSizeOfCurrentPacket(byte[] dataBuffer)
         {
-            ushort dataSize = BitConverter.ToUInt16(new byte[2] { (byte)dataBuffer[1], (byte)dataBuffer[0] }, 0);
-            return dataSize;
+            if (dataBuffer.Length < 2)
+            {
+                return 0;
+            }
+            else
+            {
+                ushort dataSize = BitConverter.ToUInt16(new byte[2] { (byte)dataBuffer[1], (byte)dataBuffer[0] }, 0);
+                return dataSize;
+            }
         }
 
         private Packet ReadBytesFromBuffer(ushort count, byte[] dataBuffer)
@@ -74,11 +86,20 @@ namespace MobaServer.Transport
 
         private void HandlePackets(List<Packet> packets)
         {
+            parsedPackets = parsedPackets.Concat(packets).ToList();
+
             //print the recv'd packets
             foreach (var p in packets)
             {
-                Console.WriteLine(p.data);
+                Console.WriteLine("Parsed Packet: " + p.data);
             }
+        }
+
+        private byte[] RemoveRangeFromBuffer(byte[] dataBuffer, int start, int end)
+        {
+            var tempList = dataBuffer.ToList();
+            tempList.RemoveRange(start, end);
+            return tempList.ToArray();
         }
     }
 }
