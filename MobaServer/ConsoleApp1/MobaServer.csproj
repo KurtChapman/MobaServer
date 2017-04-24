@@ -49,6 +49,7 @@
     <Compile Include="Transport\PacketParser.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="Transport\PacketQueue.cs" />
+    <Compile Include="Transport\WebsocketFrame.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

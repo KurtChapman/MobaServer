@@ -19,39 +19,38 @@ namespace MobaServer
             BeginListening();
         }
 
-        private void BeginListening()
+		  private void BeginListening()
         {
-            Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
-            socket.Bind(new IPEndPoint(IPAddress.Any, 8080));
-            socket.Listen(128);
-            
+				TcpListener server = new TcpListener(IPAddress.Parse("127.0.0.1"), 8080);
+				server.Start(128);
+				Console.WriteLine("Server has started on 127.0.0.1:8080.\nWaiting for a connection...");
 
-            while (true)
-            {
-                // Set the event to nonsignaled state.  
-                operationComplete.Reset();
+				while(true)
+				{
+					 // Set the event to nonsignaled state.  
+					 operationComplete.Reset();
 
-                // Start an asynchronous socket to listen for connections.  
-                Console.WriteLine("Waiting for a connection...");
-                socket.BeginAccept(null, 0, new AsyncCallback(OnAccept), socket);
+					 server.BeginAcceptTcpClient(OnAccept, server);
 
-                // Wait until a connection is made before continuing.  
-                operationComplete.WaitOne();
-            }
-        }
+					 // Wait until a connection is made before continuing.  
+					 operationComplete.WaitOne();
+				}
+		  }
 
         private void OnAccept(IAsyncResult result)
         {
-            // Signal the main thread to continue.  
-            operationComplete.Set();
 
-            // Get the socket that handles the client request.  
-            Socket listener = (Socket)result.AsyncState;
-            Socket handler = listener.EndAccept(result);
+				// Signal the main thread to continue.  
+				operationComplete.Set();
+
+				// Get the socket that handles the client request.  
+				TcpListener listener = (TcpListener)result.AsyncState;
+				TcpClient socket = listener.EndAcceptTcpClient(result);
 
             // Create the client socket and track it.
             Console.WriteLine("Connection started, created a new client");
-				Client client = new Client(handler);
+				Client client = new Client(socket);
+
 				clients.Add(client);
         }
     }

@@ -15,7 +15,7 @@ namespace MobaServer
 		  private ClientSocket socket;
 		  private int id;
 
-		  public Client(Socket socket)
+		  public Client(TcpClient socket)
 		  {
 				this.packetParser = new PacketParser();
 				this.packetQueue = new PacketQueue(packetParser);
